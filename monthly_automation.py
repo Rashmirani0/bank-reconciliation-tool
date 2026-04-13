@@ -131,17 +131,14 @@ def main():
         gl, _ = load_file(gl_path)
         
         # Clean GL
-        if 'Amount in local currency' not in gl.columns:
-            logger.error("Column 'Amount in local currency' not found in GL file.")
+        required_gl_cols = ['Amount in local currency', 'Posting Date', 'Vendor Name', 'Assignment', 'Document Number']
+        missing_gl_cols = [col for col in required_gl_cols if col not in gl.columns]
+        if missing_gl_cols:
+            logger.error(f"Missing required columns in GL file: {', '.join(missing_gl_cols)}. Please ensure the GL file contains exactly these columns: {', '.join(required_gl_cols)}")
             sys.exit(1)
             
         gl['Amount'] = pd.to_numeric(gl['Amount in local currency'].astype(str).str.replace(',', '').str.replace(' ', ''), errors='coerce')
-        
-        if 'Posting Date' in gl.columns:
-            gl['Posting Date_DT'] = pd.to_datetime(gl['Posting Date'], dayfirst=True, errors='coerce')
-        else:
-            logger.warning("'Posting Date' column missing in GL, date-based scoring will be affected.")
-            gl['Posting Date_DT'] = pd.NA
+        gl['Posting Date_DT'] = pd.to_datetime(gl['Posting Date'], dayfirst=True, errors='coerce')
 
         logger.info(f"Loaded {len(gl)} GL records.")
 
@@ -149,24 +146,22 @@ def main():
         bank, header_row_idx = load_file(bank_path, find_header_col='Txn Date')
         bank.columns = [str(c).strip() for c in bank.columns]
         
-        if 'Debit' not in bank.columns or 'Credit' not in bank.columns:
-            logger.error("Columns 'Debit' and 'Credit' are required in the Bank Statement.")
+        required_bank_cols = ['Txn Date', 'Debit', 'Credit', 'Description']
+        missing_bank_cols = [col for col in required_bank_cols if col not in bank.columns]
+        if missing_bank_cols:
+            logger.error(f"Missing required columns in Bank Statement: {', '.join(missing_bank_cols)}. Please ensure the Bank file contains exactly these columns: {', '.join(required_bank_cols)}")
             sys.exit(1)
             
         bank['Debit_Clean'] = pd.to_numeric(bank['Debit'].astype(str).str.replace(',', '').str.replace('-', '0').str.strip(), errors='coerce').fillna(0)
         bank['Credit_Clean'] = pd.to_numeric(bank['Credit'].astype(str).str.replace(',', '').str.replace('-', '0').str.strip(), errors='coerce').fillna(0)
         bank['Net_Amount'] = bank['Credit_Clean'] - bank['Debit_Clean']
 
-        if 'Txn Date' in bank.columns:
-            # Handle float serials or standard dates seamlessly
-            bank['Txn Date_DT'] = pd.to_datetime(bank['Txn Date'], errors='coerce', dayfirst=True)
-            # Find those that failed standard parsing (possibly excel serials)
-            mask_nat = bank['Txn Date_DT'].isna()
-            if mask_nat.any():
-                bank.loc[mask_nat, 'Txn Date_DT'] = bank.loc[mask_nat, 'Txn Date'].apply(excel_date)
-        else:
-            logger.warning("'Txn Date' missing from Bank Statement, date-based scoring will be affected.")
-            bank['Txn Date_DT'] = pd.NA
+        # Handle float serials or standard dates seamlessly
+        bank['Txn Date_DT'] = pd.to_datetime(bank['Txn Date'], errors='coerce', dayfirst=True)
+        # Find those that failed standard parsing (possibly excel serials)
+        mask_nat = bank['Txn Date_DT'].isna()
+        if mask_nat.any():
+            bank.loc[mask_nat, 'Txn Date_DT'] = bank.loc[mask_nat, 'Txn Date'].apply(excel_date)
 
         logger.info(f"Loaded {len(bank)} Bank records (Header detected at row {header_row_idx}).")
         
