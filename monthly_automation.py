@@ -119,7 +119,7 @@ def main():
         sys.exit(1)
 
     logger.info("==========================================")
-    logger.info("🚀 Starting Monthly BRS Automation")
+    logger.info("🚀 Starting Monthly BRS Automation [v1.1]")
     logger.info("==========================================")
     logger.info(f"GL File    : {gl_path}")
     logger.info(f"Bank File  : {bank_path}")
