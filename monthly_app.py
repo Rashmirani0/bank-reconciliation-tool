@@ -14,7 +14,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🤖 Monthly BRS Automator `v1.1`")
+st.title("🤖 Monthly BRS Automator `v1.1 (13-Apr-2026)`")
 st.markdown("Automated Bank Reconciliation using exact matches, UTR checks, and strict column verification.")
 
 # ───────────────────────────────────────────────
